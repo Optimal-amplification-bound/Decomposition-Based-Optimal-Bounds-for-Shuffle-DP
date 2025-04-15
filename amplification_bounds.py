@@ -286,7 +286,7 @@ class FFTbound(NumericShuffleAmplificationBound):
 
     def get_delta(self, eps, eps0, n):
         support_list,prob_list=self.mechanism.get_gparv_distribution(eps)
-        discretize_delta=(exp(eps0)-1)/1200
+        discretize_delta=(exp(eps0)-1)/1000
         delta=self.fft_compute(n,support_list,prob_list,discretize_delta)
         return self.threshold_delta(delta)
 
@@ -383,7 +383,7 @@ class FFTLowerBound(NumericShuffleAmplificationBound):
 
     def get_delta(self, eps, eps0, n):
         support_list,prob_list=self.mechanism.get_gparv_distribution(eps)
-        discretize_delta=(exp(eps0)-1)/1200
+        discretize_delta=(exp(eps0)-1)/1000
         delta=self.fft_compute(n,support_list,prob_list,discretize_delta)
         return self.threshold_delta(delta)
 
