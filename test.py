@@ -22,7 +22,7 @@ def plot_panel(f, xs, bounds, with_mech=True, debug=False):
 
 ###########################################################
 
-eps0 = 0.1
+eps0 = 4.0
 delta = 1e-6
 
 # hr=HadamardResponseMechanism(eps0)
@@ -50,15 +50,15 @@ def eps(bound, n):
 
 
 
-bounds=[
-    Hoeffding(laplace),
-    BennettExact(laplace),
-    CloneEmpiricalBound(LDPMechanism(eps0)),
-    FFTbound(laplace),
-    FFTLowerBound(laplace_lowerbound),
-    FFTbound(LaplaceMechanism_joint(eps0/2,2)),
-    FFTbound(LaplaceMechanism_joint(eps0/4,4))
-]
+# bounds=[
+#     Hoeffding(laplace),
+#     BennettExact(laplace),
+#     CloneEmpiricalBound(LDPMechanism(eps0)),
+#     FFTbound(laplace),
+#     FFTLowerBound(laplace_lowerbound),
+#     FFTbound(LaplaceMechanism_joint(eps0/2,2)),
+#     FFTbound(LaplaceMechanism_joint(eps0/4,4))
+# ]
 
 # bounds=[
 #     Hoeffding(oue),
@@ -99,6 +99,17 @@ bounds=[
 #     FFTbound(RRMechanism_joint(eps0/2,2,10)),
 #     FFTbound(RRMechanism_joint(eps0/4,4,10))
 # ]
+
+parallel_RR_BLH=Parallel_Composition(eps0)
+
+bounds=[
+    Hoeffding(parallel_RR_BLH),
+    BennettExact(parallel_RR_BLH),
+    CloneEmpiricalBound(LDPMechanism(eps0)),
+    FFTbound(krr),
+    FFTbound(blh),
+    FFTbound(parallel_RR_BLH)
+]
 
 
 

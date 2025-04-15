@@ -713,3 +713,58 @@ class RapporMechanism_lowerbound(LDPMechanism):
             q[i]*=exp(eps0*(2-a-c+b)/2)
             w[i]*=exp(eps0*(2-a-b+c)/2)
         return self.calculate_gparv_prob_distribution(p,q,w,exp(eps))
+    
+class Parallel_Composition(LDPMechanism):
+
+    def __init__(self, eps0=1,mechanisms=[],weights=[0.5,0.5], name='10-RR_BLH_Parallel'):
+        super(Parallel_Composition, self).__init__(eps0=eps0, name=name)
+        if len(mechanisms)==0:
+            self.mechanisms=[RRMechanism(eps0,10),BinaryLocalHashMechanism(eps0)]
+        else:
+            self.mechanisms=mechanisms
+        self.weights=weights
+
+    def get_name(self):
+        name = self.name
+        return name
+    
+    def get_gamma(self):
+        gamma=0.0
+        for m,p in zip(self.mechanisms,self.weights):
+            _,t=m.get_gamma()
+            gamma+=t*p
+        return gamma, gamma
+
+    def get_max_l(self, eps):
+        max_l=0.0
+        for m in self.mechanisms:
+            t=m.get_max_l(eps)
+            max_l=max(max_l,t)
+        return max_l
+
+    def get_range_l(self, eps):
+        max_l=0.0
+        min_l=0.0
+        for m in self.mechanisms:
+            max_temp=m.get_max_l(eps)
+            min_temp=m.get_max_l(eps)-m.get_range_l(eps)
+            max_l=max(max_l,max_temp)
+            min_l=min(min_l,min_temp)
+        return max_l-min_l
+
+    def get_var_l(self, eps):
+        var_l=0.0
+        for m,w in zip(self.mechanisms,self.weights):
+            temp=m.get_var_l(eps)
+            var_l+=temp*w
+        return var_l
+    
+    def get_gparv_distribution(self,eps):
+        support_list=[]
+        prob_list=[]
+        for m,w in zip(self.mechanisms,self.weights):
+            s_list,p_list=m.get_gparv_distribution(eps)
+            for s,p in zip(s_list,p_list):
+                support_list.append(s)
+                prob_list.append(w*p)
+        return support_list,prob_list
