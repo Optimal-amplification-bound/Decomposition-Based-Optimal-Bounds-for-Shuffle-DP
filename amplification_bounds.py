@@ -259,7 +259,6 @@ class FFTbound(NumericShuffleAmplificationBound):
 
         
         grid_vector, start=self.discretize_distribution(x_original,P_original,discretize_delta)
-
         grid_vector = cp.asarray(grid_vector)
         N = len(grid_vector)
         target_length = 1 << (int(n * (N - 1)).bit_length() ) # FFT will be accelerated when N=2^m, m is an integer
@@ -272,9 +271,10 @@ class FFTbound(NumericShuffleAmplificationBound):
         P_fft_n = P_fft ** n
 
         P_conv_n = cp.fft.ifft(P_fft_n)
-        P_conv_n = cp.maximum(P_conv_n, 0) 
-        P_conv_n=P_conv_n/ cp.sum(P_conv_n)
-        P_conv_n=P_conv_n.real[int(-start)*n:n * (N-1)+1] # remove the negative and the padded portions
+        P_conv_n=P_conv_n.real
+        P_conv_n = cp.maximum(P_conv_n, 0) # Probability should be non-negative
+        P_conv_n=P_conv_n/ cp.sum(P_conv_n) 
+        P_conv_n=P_conv_n[int(-start)*n:n * (N-1)+1] # remove the negative and the padded portions
 
 
         final_support = cp.linspace(0, (N-1+start) * discretize_delta, len(P_conv_n))
@@ -286,7 +286,7 @@ class FFTbound(NumericShuffleAmplificationBound):
 
     def get_delta(self, eps, eps0, n):
         support_list,prob_list=self.mechanism.get_gparv_distribution(eps)
-        discretize_delta=(exp(eps0)-1)/1000
+        discretize_delta=(exp(eps0)-1)/1200
         delta=self.fft_compute(n,support_list,prob_list,discretize_delta)
         return self.threshold_delta(delta)
 
@@ -337,7 +337,7 @@ class FFTLowerBound(NumericShuffleAmplificationBound):
         end=-1e100
         
         for x, p in zip(support, prob):
-            x_rounded = math.floor(x / discretize_delta)
+            x_rounded = math.floor(x / discretize_delta) 
             grid_dist[x_rounded] += p
             start=min(start,x_rounded)
             end=max(end,x_rounded)
@@ -369,9 +369,10 @@ class FFTLowerBound(NumericShuffleAmplificationBound):
         P_fft_n = P_fft ** n
 
         P_conv_n = cp.fft.ifft(P_fft_n)
+        P_conv_n=P_conv_n.real
         P_conv_n = cp.maximum(P_conv_n, 0) 
         P_conv_n=P_conv_n/ cp.sum(P_conv_n)
-        P_conv_n=P_conv_n.real[int(-start)*n:n * (N-1)+1] # remove the negative and the padded portions
+        P_conv_n=P_conv_n[int(-start)*n:n * (N-1)+1] # remove the negative and the padded portions
 
 
         final_support = cp.linspace(0, (N-1+start) * discretize_delta, len(P_conv_n))
@@ -383,7 +384,7 @@ class FFTLowerBound(NumericShuffleAmplificationBound):
 
     def get_delta(self, eps, eps0, n):
         support_list,prob_list=self.mechanism.get_gparv_distribution(eps)
-        discretize_delta=(exp(eps0)-1)/1000
+        discretize_delta=(exp(eps0)-1)/1200
         delta=self.fft_compute(n,support_list,prob_list,discretize_delta)
         return self.threshold_delta(delta)
 

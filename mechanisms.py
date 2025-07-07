@@ -56,12 +56,15 @@ class LDPMechanism:
 
     def get_gparv_distribution(self,eps):
         '''This can be used to compute the empirical bound provided by the standard clone via FFT'''
+        '''It is the GPARV derived form the standard clone'''
         eps0 = self.get_eps0()
         support_list=[1-exp(eps+eps0),0,exp(eps0)-exp(eps)]
         prob_list=[1/(2*exp(eps0)),1-1/(exp(eps0)),1/(2*exp(eps0))]
         return support_list,prob_list
     
     def tensor_product(self,p, k): #used in the joint composition
+        if k==0:
+            return np.ones(1)
         result = p
         for _ in range(k - 1):
             result = np.outer(result, p).flatten()
@@ -86,7 +89,7 @@ class LDPMechanism:
 
 
 class LaplaceMechanism(LDPMechanism):
-    """Class implementing parameter computation for a Laplace mechanism with inputs in [0,1].
+    """Class implementing parameter computation for a Laplace mechanism with inputs in {0,1}.
     Bounds below are specialized exact calculations for this mechanism.
     """
     def __init__(self, eps0=1, name='Laplace'):
@@ -110,26 +113,26 @@ class LaplaceMechanism(LDPMechanism):
     
     def get_gparv_distribution(self,eps):
         eps0 = self.get_eps0()
-        length=10000
-        p=np.zeros(length+2)
-        q=np.zeros(length+2)
-        w=np.zeros(length+2)
+        n=10000 # Discretize the interval $[0,1]$ into 10000 subintervals.
+        p=np.zeros(n+2)     # x_1^0=1 
+        q=np.zeros(n+2)     # x_1^1=0
+        w=np.zeros(n+2)
 
-        p[0]=0.5*exp(-eps0)
+        p[0]=0.5*exp(-eps0) # Probability for (-inf, 0]
         q[0]=0.5
         w[0]=0.5*exp(-0.5*eps0)
 
-        p[length+1]=0.5
-        q[length+1]=0.5*exp(-eps0)
-        w[length+1]=0.5*exp(-0.5*eps0)
+        p[n+1]=0.5 # Probability for [1, +inf)
+        q[n+1]=0.5*exp(-eps0)
+        w[n+1]=0.5*exp(-0.5*eps0)
 
-        for i in range(length,0,-1):
-            p[i]=(eps0/2)*exp(-eps0*i/length)/length
-            q[i]=(eps0/2)*exp(eps0*(i/length-1))/length
-            w[i]=(eps0/2)*exp(-eps0*fabs(i/length-0.5))/length
+        for i in range(n,0,-1):
+            p[i]=(eps0/2)*exp(-eps0*i/n)/n # Approximate the cumulative probability over the interval as f(x)*1/n
+            q[i]=(eps0/2)*exp(eps0*(i/n-1))/n
+            w[i]=(eps0/2)*exp(-eps0*fabs(i/n-0.5))/n
         
-        support_list, prob_list= self.calculate_gparv_prob_distribution(p,q,w,exp(eps))
-        for i in range(len(support_list)):
+        support_list, prob_list= self.calculate_gparv_prob_distribution(p,q,w,exp(eps)) # Compute the PARV
+        for i in range(len(support_list)):  # Compute the GPARV
             support_list[i]*=exp(eps0/2)
             prob_list[i]*=exp(-eps0/2)
         
@@ -137,59 +140,32 @@ class LaplaceMechanism(LDPMechanism):
         prob_list.append(1-exp(-eps0/2))
 
         return support_list, prob_list
-
-    
-    # def get_gparv_distribution(self,eps):
-    #     eps0 = self.get_eps0()
-    #     gamma = exp(-self.get_eps0()/2)
-    #     support_list=[]
-    #     prob_list=[]
-    #     length=((exp(eps0)-1)*(exp(eps)+1))*1200/exp(eps)
-    #     min_l=1-exp(eps0+eps)
-
-    #     support_list.append(min_l)
-    #     prob_list.append(0.0)
-    #     for i in range(length+1):
-    #         x=length*exp(eps)/1200+min_l
-    #         support_list.append(x)
-    #         if x<1-exp(eps):
-    #             p=gamma*0.5*sqrt(exp(eps)/(1-exp(eps0/2)/x))-support_list[-1]
-    #         elif x< exp(eps0)-eps(eps):
-    #             p=gamma*(1-0.5/sqrt(exp(eps0/2)*x+exp(eps)))-support_list[-1]
-    #         else:
-    #             p=gamma -support_list[-1]
-    #         prob_list.append(p)
-        
-    #     prob_list[int(ceil(-min_l/length))]+=1-gamma
-
-    #     return support_list,prob_list
     
 class LaplaceLowerBound(LDPMechanism):
-    """Class implementing parameter computation for a Laplace mechanism with inputs in [0,1].
-    Bounds below are specialized exact calculations for this mechanism.
-    """
+    """    """
     def __init__(self, eps0=1, name='Laplace_lowerbound'):
         super(LaplaceLowerBound, self).__init__(eps0=eps0, name=name)
     
     def get_gparv_distribution(self,eps):
         eps0 = self.get_eps0()
-        length=10000
-        p=np.zeros(length+2)
-        q=np.zeros(length+2)
-        w=np.zeros(length+2)
+        n=10000
+        p=np.zeros(n+2) # x_1^0=1 
+        q=np.zeros(n+2) # x_1^1=0
+        w=np.zeros(n+2) # x_2=x_3=...=x_n=0
 
-        p[0]=0.5*exp(-eps0)
-        q[0]=0.5
-        w[0]=0.5*exp(-0.5*eps0)
+        p[0]=0.5*exp(-eps0) # Probability for (-inf, 0]
+        q[0]=0.5             
+        w[0]=0.5             
 
-        p[length+1]=0.5
-        q[length+1]=0.5*exp(-eps0)
-        w[length+1]=0.5*exp(-0.5*eps0)
+        p[n+1]=0.5          # Probability for [1, +inf)
+        q[n+1]=0.5*exp(-eps0)
+        w[n+1]=q[n+1]
 
-        for i in range(length,0,-1):
-            p[i]=(eps0/2)*exp(-eps0*i/length)/length
-            q[i]=(eps0/2)*exp(eps0*(i/length-1))/length
-            w[i]=(eps0/2)*exp(-eps0*fabs(i/length-0.5))/length
+        for i in range(n,0,-1):
+            p[i]=(eps0/2)*exp(-eps0*i/n)/n  # Approximate the cumulative probability over the interval as f(x)*1/n
+            q[i]=(eps0/2)*exp(eps0*(i/n-1))/n
+            w[i]=q[i]   
+            #w[i]=(eps0/2)*exp(-eps0*fabs(i/length-0.5))/length # x_2=x_3=...=x_n=0.5
 
         return self.calculate_gparv_prob_distribution(p,q,w,exp(eps))
     
@@ -207,23 +183,27 @@ class LaplaceMechanism_joint(LDPMechanism):
         k_joint=self.get_k_joint()
         eps0 = self.get_eps0()
 
-        length=20
-        p=np.zeros(length+2)
-        q=np.zeros(length+2)
-        w=np.zeros(length+2)
+        n=20
+        p=np.zeros(n+3)    # x_1^0=1 
+        q=np.zeros(n+3)    # x_1^1=0
+        w=np.zeros(n+3)    
 
-        p[0]=0.5*exp(-eps0)
+        p[0]=0.5*exp(-eps0)     # Probability for (-inf, 0]
         q[0]=0.5
-        w[0]=0.5*exp(-0.5*eps0)
+        w[0]=0.5*exp(-0.5*eps0)*exp(-eps0/2)
 
-        p[length+1]=0.5
-        q[length+1]=0.5*exp(-eps0)
-        w[length+1]=0.5*exp(-0.5*eps0)
+        p[n+1]=0.5         # Probability for [1, +inf)
+        q[n+1]=0.5*exp(-eps0)
+        w[n+1]=0.5*exp(-0.5*eps0)*exp(-eps0/2)
 
-        for i in range(length,0,-1):
-            p[i]=0.5*exp(-eps0*(i-1)/length)-0.5*exp(-eps0*i/length)
-            q[i]=0.5*exp(eps0*(i/length-1))-0.5*exp(eps0*( (i-1)/length-1))
-            w[i]=0.5*fabs(exp(-eps0*fabs(i/length-0.5))-exp(-eps0*fabs( (i-1)/length-0.5)) )
+        p[n+2]=0
+        q[n+2]=0
+        w[n+2]=1-exp(-eps0/2)
+
+        for i in range(n,0,-1):
+            p[i]=0.5*exp(-eps0*(i-1)/n)-0.5*exp(-eps0*i/n)
+            q[i]=0.5*exp(eps0*(i/n-1))-0.5*exp(eps0*( (i-1)/n-1))
+            w[i]=0.5*fabs(exp(-eps0*fabs(i/n-0.5))-exp(-eps0*fabs( (i-1)/n-0.5)) )*exp(-eps0/2)
 
 
         p_joint=self.tensor_product(p,k_joint)
@@ -246,9 +226,6 @@ class RRMechanism(LDPMechanism):
         if with_k:
             name = '{}-'.format(self.get_k())+name
         return name
-
-    def set_k(self, k):
-        self.k = k
 
     def get_k(self):
         return self.k
@@ -296,9 +273,6 @@ class RRMechanism_joint(LDPMechanism):
             name = '{}-'.format(self.get_k())+name
         return name
 
-    def set_k(self, k):
-        self.k = k
-
     def get_k(self):
         return self.k
     
@@ -335,9 +309,6 @@ class RRMechanism_lowerbound(LDPMechanism):
             name = '{}-'.format(self.get_k())+name
         return name
 
-    def set_k(self, k):
-        self.k = k
-
     def get_k(self):
         return self.k
     
@@ -345,18 +316,18 @@ class RRMechanism_lowerbound(LDPMechanism):
         k = self.get_k()
         eps0 = self.get_eps0()
         if k>2:
-            p=np.ones(k)*(1/(exp(eps0)+k-1))
+            p=np.ones(k)*(1/(exp(eps0)+k-1)) #x_1^0=0
             p[0]=exp(eps0)/(exp(eps0)+k-1)
-            q=np.ones(k)*(1/(exp(eps0)+k-1))
+            q=np.ones(k)*(1/(exp(eps0)+k-1)) #x_1^1=1
             q[1]=exp(eps0)/(exp(eps0)+k-1)
-            w=np.ones(k)*(1/(exp(eps0)+k-1))
+            w=np.ones(k)*(1/(exp(eps0)+k-1)) #x_2=x_3=...=2
             w[2]=exp(eps0)/(exp(eps0)+k-1)
         else:
-            p=np.ones(k)*(1/(exp(eps0)+k-1))
+            p=np.ones(k)*(1/(exp(eps0)+k-1)) #x_1^0=0
             p[0]=exp(eps0)/(exp(eps0)+k-1)
-            q=np.ones(k)*(1/(exp(eps0)+k-1))
+            q=np.ones(k)*(1/(exp(eps0)+k-1)) #x_1^1=1
             q[1]=exp(eps0)/(exp(eps0)+k-1)
-            w=np.ones(k)*(1/(exp(eps0)+k-1))
+            w=np.ones(k)*(1/(exp(eps0)+k-1)) #x_2=x_3=...=1
             w[1]=exp(eps0)/(exp(eps0)+k-1)
 
         return self.calculate_gparv_prob_distribution(p,q,w,exp(eps))
@@ -432,6 +403,7 @@ class HRMechanism_lowerbound(LDPMechanism):
         return name
     
     def get_gparv_distribution(self,eps):
+        ''' x_1^0=1, x_1^1=2, x_2=x_3=..._x_n=4'''
         eps0 = self.get_eps0()
         p=np.ones(8)/(1+exp(eps0))
         q=p=np.ones(8)/(1+exp(eps0))
@@ -516,6 +488,7 @@ class BLHMechanism_lowerbound(LDPMechanism):
         return name
 
     def get_gparv_distribution(self,eps):
+        '''x_1^0=1, x_1^1=2, x_2=x_3=...=x_n=3'''
         eps0 = self.get_eps0()
         p=np.zeros(16)
         q=np.zeros(16)
@@ -609,6 +582,7 @@ class OUEMechanism_lowerbound(LDPMechanism):
     
 
     def get_gparv_distribution(self,eps):
+        '''x_1^0=1, x_1^1=2, x_2=x_3=...=x_n=3'''
         eps0 = self.get_eps0()
         temp=0.5/((1+exp(eps0))**2)
         p=np.ones(8)*temp
@@ -627,7 +601,7 @@ class RapporMechanism(LDPMechanism):
     """Class implementing parameter computation for a RAPPOR mechanism
     Bounds below are specialized exact calculations for this mechanism.
     """
-    def __init__(self, eps0=1, name='RAPPOR'):
+    def __init__(self, eps0=1, name='RAPPOR_D>>1'):
         super(RapporMechanism, self).__init__(eps0=eps0, name=name)
 
     def get_gamma(self):
@@ -662,6 +636,39 @@ class RapporMechanism(LDPMechanism):
         prob_list=[1/temp,exp(-eps0/2)/temp,exp(eps0/2)/temp,1-exp(-eps0/2),1/temp]
         return support_list,prob_list
 
+
+class RapporMechanism_not_asymptotic(LDPMechanism):
+    """Class implementing parameter computation for a RAPPOR mechanism with domain size D
+    """
+    def __init__(self, eps0=1, D=10, name='RAPPOR_D='):
+        super(RapporMechanism_not_asymptotic, self).__init__(eps0=eps0, name=name+'{}'.format(D))
+        self.D=D
+
+    def get_D(self):
+        return self.D
+
+    def get_gamma(self):
+        eps0=self.get_eps0()
+        gamma = exp(-self.get_eps0()/2)+ (exp(eps0/2)-exp(-eps0/2) )/( (1+exp(eps0/2))**self.get_D() )
+        return gamma
+
+    def get_max_l(self, eps):
+        gamma = self.get_gamma()
+        eps0 = self.get_eps0()
+        return gamma *(exp(eps0)-exp(eps) )
+
+    def get_range_l(self, eps):
+        gamma_ub = self.get_gamma()
+        eps0 = self.get_eps0()
+        return gamma_ub * (exp(eps)+1) * (exp(eps0)-1)
+    
+    def get_gparv_distribution(self,eps):
+        eps0 = self.get_eps0()
+        temp=((exp(eps0/2)+1)**2)
+        bias=exp(-eps0/2)/self.get_gamma()/((1+exp(eps0/2)**self.get_D()))
+        support_list=[1-exp(eps+eps0),exp(eps0)-exp(eps+eps0),1-exp(eps),0,exp(eps0)-exp(eps)]
+        prob_list=[1/temp,exp(-eps0/2)/temp-bias,exp(eps0/2)/temp+exp(eps0)*bias,1-self.get_gamma(),1/temp]
+        return support_list,prob_list
         
     
 class RapporMechanism_joint(LDPMechanism):
@@ -700,6 +707,7 @@ class RapporMechanism_lowerbound(LDPMechanism):
     
 
     def get_gparv_distribution(self,eps):
+        '''x_1^0=1, x_1^1=2, x_2=x_3=...=x_n=3'''
         eps0 = self.get_eps0()
         temp=1/((1+exp(eps0/2))**3)
         p=np.ones(8)*temp
@@ -713,6 +721,23 @@ class RapporMechanism_lowerbound(LDPMechanism):
             q[i]*=exp(eps0*(2-a-c+b)/2)
             w[i]*=exp(eps0*(2-a-b+c)/2)
         return self.calculate_gparv_prob_distribution(p,q,w,exp(eps))
+
+
+class VoidMechanism(LDPMechanism):
+    '''Used for poisson subsampling in the shuffle model'''
+    def __init__(self, eps0=1, name='Void'):
+        super(VoidMechanism, self).__init__(eps0=eps0, name=name)
+
+    def get_name(self):
+        name = self.name
+        return name
+    
+
+    def get_gparv_distribution(self,eps):
+        support_list=[1-exp(eps)]
+        probability_list=[1.0]
+        return support_list,probability_list
+    
     
 class Parallel_Composition(LDPMechanism):
 
@@ -768,3 +793,81 @@ class Parallel_Composition(LDPMechanism):
                 support_list.append(s)
                 prob_list.append(w*p)
         return support_list,prob_list
+    
+
+class Parallel_Composition_lowerbound(LDPMechanism):
+
+    def __init__(self, eps0=1,mechanisms=[],weights=[0.5,0.5], name='10-RR_BLH_Parallel_lowerbound'):
+        super(Parallel_Composition_lowerbound, self).__init__(eps0=eps0, name=name)
+        if len(mechanisms)==0:
+            self.mechanisms=[RRMechanism_lowerbound(eps0,10),BLHMechanism_lowerbound(eps0)]
+        else:
+            self.mechanisms=mechanisms
+        self.weights=weights
+
+    def get_name(self):
+        name = self.name
+        return name
+    
+    def get_gparv_distribution(self,eps):
+        support_list=[]
+        prob_list=[]
+        for m,w in zip(self.mechanisms,self.weights):
+            s_list,p_list=m.get_gparv_distribution(eps)
+            for s,p in zip(s_list,p_list):
+                support_list.append(s)
+                prob_list.append(w*p)
+        return support_list,prob_list
+    
+class RRMechanism_joint_test(LDPMechanism):
+    '''Testing the privacy amplification upper bound under different adjacency relations (with Hamming distance d) in joint composition. '''
+    def __init__(self, eps0=4,d=4, k_joint=4, k=10, name='RR'):
+        super(RRMechanism_joint_test, self).__init__(eps0=eps0, name=name)
+        self.k = k
+        self.k_joint = k_joint
+        self.d=d    # the hamming distance of two inputs of the first user
+
+    def get_name(self, with_k=True):
+        name = self.name
+        if with_k:
+            name = '{}-'.format(self.get_k())+name
+        return name
+
+    def get_k(self):
+        return self.k
+    
+    def get_k_joint(self):
+        return self.k_joint
+    
+    def get_d(self):
+        return self.d
+    
+    def tensor_product_pq(self,p, q):
+        result = np.outer(p,q).flatten()
+        result=result/np.sum(result)
+        return result
+    
+    def get_gparv_distribution(self,eps):
+        k = self.get_k()
+        k_joint=self.get_k_joint()
+        d=self.get_d()
+
+        eps0 = self.get_eps0()
+        p=np.ones(k+1)*(1/(exp(eps0)+k-1))
+        p[0]=exp(eps0)/(exp(eps0)+k-1)
+        p[k]=0.0
+        q=np.ones(k+1)*(1/(exp(eps0)+k-1))
+        q[1]=exp(eps0)/(exp(eps0)+k-1)
+        q[k]=0.0
+        w=np.ones(k+1)*(1/(exp(eps0)+k-1))
+        w[k]=(exp(eps0)-1)/(exp(eps0)+k-1)
+
+        # p_=np.ones(k+1)*(1/(exp(eps0)+k-1))
+        # p_[0]=exp(eps0)/(exp(eps0)+k-1)
+        # p_[k]=0.0
+
+        p_joint=self.tensor_product_pq(self.tensor_product(p,d),self.tensor_product(p,k_joint-d))
+        q_joint=self.tensor_product_pq(self.tensor_product(q,d),self.tensor_product(p,k_joint-d))
+        w_joint=self.tensor_product(w,k_joint)
+        
+        return self.calculate_gparv_prob_distribution(p_joint,q_joint,w_joint,exp(eps))
