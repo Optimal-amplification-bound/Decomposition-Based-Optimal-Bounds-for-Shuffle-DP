@@ -1,6 +1,6 @@
 # Decomposition-Based Optimal Bounds for Privacy Amplification via Shuffling
 
-This repository contains the code for our paper:  
+This repository contains the code for the paper:  
 **"Decomposition-Based Optimal Bounds for Privacy Amplification via Shuffling."**
 
 We develop an efficient algorithm to compute the optimal privacy amplification bounds in the shuffle model using decomposition-based methods. Our implementation supports a wide range of specific local randomizers and provides both upper and lower bounds with high precision.
